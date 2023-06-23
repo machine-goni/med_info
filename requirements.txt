@@ -2,6 +2,6 @@ fastapi
 uvicorn
 pydantic
 langchain
-pinecone
+pinecone-client
 tiktoken
 openai
