@@ -1,4 +1,5 @@
 # pip install tiktoken
+# pinecone 을 pip install 시 pinecone-client 으로 인스톨하고 requirement 에도 pinecone-client 로 넣어줘라
 
 import os
 import json
