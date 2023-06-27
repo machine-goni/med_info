@@ -14,17 +14,16 @@ from langchain.chains import ConversationalRetrievalChain
 PINECONE_API_ENV = os.environ.get('PINECONE_API_ENV', 'us-west1-gcp-free') # You may need to switch with your env
 INDEX_NAME = "med-info" # put in the name of your pinecone index here
 
-add_string = "JSON 형식으로 알려주고 답변에 대한 키는 ```answer``` 로 하고 관련 예상질문을 2개 뽑아서 리스트를 ```expected``` 키에 넣어줘"
+
 
 class AskQuestions:
-    #openai_key = ""
-    #pinecone_key = ""
-    #embeddings
+
 
     def __init__(self, openai_key, pinecone_key):
         self.openai_key = openai_key
         self.pinecone_key = pinecone_key
-        self.conversation_count = 0
+        self.conversation_count = 0    
+        self.chat_history = []
 
         # create embedding instance
         self.embeddings = OpenAIEmbeddings(openai_api_key=self.openai_key)
@@ -47,21 +46,23 @@ class AskQuestions:
             chain_type="stuff",
             return_source_documents=True    # 검색한 소스문서가 무엇인지 반환
         )
-
+        
 
     # 대화를 처음 시작
     def ask_first(self, query):
         self.conversation_count = 0
-        json_data = {}
-
+        #print("this is ask_first")
+        
         try:        
             # Initialize chat history list
             self.chat_history = []
 
-            new_query = query + " " + add_string
+            #new_query = f"""JSON 형식으로 세 개의 역따옴표로 구분된 텍스트에 대해 답변해라. reply 키에 답변을, expected 키에 2개의 관련 예상 질문을 넣어라. ```{query}```"""                  
+            #new_query = f"""세 개의 역따옴표로 구분된 텍스트에 대해 답변하고 2개의 관련 질문을 생성해라. 답변과 질문1, 질문2 사이에는 <|> 으로 구분해라. ```{query}```"""             
+            new_query = query
 
             # Begin conversing
-            response = self.chain({"question": new_query, "chat_history": self.chat_history})
+            response = self.chain({"question": new_query, "chat_history": self.chat_history})                                
             #print("\nQ: " + query)
             #print("\nA: " + response["answer"])
             # 어떤 chunk 에서 검색된 것인지 확인
@@ -69,29 +70,38 @@ class AskQuestions:
             # Add the answer to the chat history
             self.chat_history.append((query, response["answer"]))
             self.conversation_count = 1
-                        
-            # json.loads 를 써야 type 이 json 이 된다. encoding 이 되있으면 dumps 를 써야 하는것 같던데.. 확실하진 않다. 둘 중 하나 쓰면 된다.
-            # answer = json.loads(json.dumps(response["answer"]))
-            answer = json.loads(response["answer"])                
-            json_data["answer"] = answer["answer"]            
-            json_data["expected_1"] = answer["expected"][0]            
-            json_data["expected_2"] = answer["expected"][1]
 
+            # gpt 가 보낸(response) 형식이 이미 json 이기 때문에 key 로 접근을 하려면 json.loads 를 통해 dictionary 로 변환해야 한다.
+            # encoding 이 되있으면 dumps 를 써야 하는것 같던데.. 확실하진 않다. (answer = json.loads(json.dumps(response["answer"])) 이런식으로)  
+            # 이미 type 이 str 인 상태에서 또 다시 json.dumps 를 뜨면 encoding 이 되어버린다. 그래서 하면 안됨.          
+            #answer = json.loads(response["answer"])                
+            #json_data["answer"] = answer["answer"]            
+            #json_data["expected_1"] = answer["expected"][0]            
+            #json_data["expected_2"] = answer["expected"][1]
+
+            # response 는 dictionary 이다. gpt 에게 json 형식으로 달라고 했지만 response 에는 이거저거 다 들어있기 때문.
+            # print(response)
+            return response
             
+
         except Exception as e:
             print("Exception!!:" + str(e))            
             
+            json_data = {}
             json_data["answer"] = "Exception!!"
             json_data["expected_1"] = str(e)
             json_data["expected_2"] = str(e)
 
-        #return result
-        return json_data
+            # json 형식으로 보내기 위해 json.dumps 를 사용해 dictionary 를 json 으로 변환
+            #return json.dumps(json_data)
+            
+            # 정상 응답과 형식을 맞추기 위해 dictionary 형태로 보낸다.
+            return json_data
     
     
     # 앞에 대화에 이어서 질문
-    def ask(self, query):
-        json_data = {}
+    def ask(self, query):    
+        #print("this is ask")
 
         try:
             # chat history 를 최근 2개까지만 저장한다. 1개도 괜찮긴한데 안괜찮을때가 있어서..
@@ -100,11 +110,14 @@ class AskQuestions:
                 chat_1 = self.chat_history[2]
                 self.chat_history = []
                 self.chat_history.append(chat_0)
-                self.chat_history.append(chat_1)
+                self.chat_history.append(chat_1)            
 
-            new_query = query + " " + add_string
+            # 문제는 json 형식으로 안보낼때가 있다. 다른 방식을 써야겠다.
+            #new_query = f"""JSON 형식으로 세 개의 역따옴표로 구분된 텍스트에 대해 답변해라. reply 키에 답변을, expected 키에 2개의 관련 예상 질문을 넣어라. ```{query}```"""             
+            #new_query = f"""세 개의 역따옴표로 구분된 텍스트에 대해 답변하고 2개의 관련 질문을 생성해라. 답변과 질문1, 질문2 사이에는 <|> 으로 구분해라. ```{query}```"""             
+            new_query = query
              
-            response = self.chain({"question": new_query, "chat_history": self.chat_history})
+            response = self.chain({"question": new_query, "chat_history": self.chat_history})            
             #print("\nQ: " + query)
             #print("\nA: " + response["answer"])
             # 어떤 chunk 에서 검색된 것인지 확인
@@ -113,21 +126,25 @@ class AskQuestions:
             self.chat_history.append((query, response["answer"]))
             self.conversation_count = self.conversation_count + 1
 
-            answer = json.loads(response["answer"])                
-            json_data["answer"] = answer["answer"]            
-            json_data["expected_1"] = answer["expected"][0]            
-            json_data["expected_2"] = answer["expected"][1]
+            #answer = json.loads(response["answer"])                
+            #json_data["answer"] = answer["answer"]            
+            #json_data["expected_1"] = answer["expected"][0]            
+            #json_data["expected_2"] = answer["expected"][1]
+
+            # print(response)
+            return response
             
             
         except Exception as e:
             print("Exception!!:" + str(e))
 
+            json_data = {}
             json_data["answer"] = "Exception!!"
             json_data["expected_1"] = str(e)
             json_data["expected_2"] = str(e)
 
-
-        return json_data
+            #return json.dumps(json_data)                
+            return json_data
 
 
 """
