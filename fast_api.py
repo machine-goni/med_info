@@ -12,7 +12,7 @@ import json
 
 '''
 POST 메세지를 받을 클래스. FastAPI 에서는 이걸 model 이라고 부른다.
-operation, x, y 는 메세지로 받을 param 이다.
+question, isFirst 는 메세지로 받을 param 이다.
 '''
 class User_key(BaseModel):
     openai_key : str
@@ -31,7 +31,7 @@ receiver = RecvQuestions()
 
 '''
 FastAPI instance 로 REST API 를 정의 한다.
-@app.post("/question_to_medinfo") 안의 "/question_to_medinfo" 는 route
+@app.post("/init") 안의 "/init" 는 route
 '''
 
 @app.post("/init")
@@ -43,8 +43,7 @@ def operate(input:User_key):
 
     # 보내기 직전에 json 으로 변환시킨다
     new_result = json.dumps(json_data)
-    #print(new_result)
-    #print(type(new_result))
+
 
     return new_result
 
@@ -53,30 +52,7 @@ def operate(input:User_key):
 def operate(input:User_input):
     result = receiver.recv_question(input.question, input.isFirst)
 
-    # 돌려줘야 할 것은 answer 뿐이므로 뽑아내고, "```json" 와 "```" 를 지우지 않으면 json.dumps 뜰때 에러가 난다. 하지만 여기서는 json.dumps 안뜰거라 상관없을지도..
-    #print(type(result))
-    #print(result)
-    #answer = result["answer"]
-    #answer = answer.replace("```json", "")
-    #answer = answer.replace("```", "")
-    #answer = answer.replace("\n", "")
-    #answer = answer.replace("    ", "")    
-    #print(type(answer))  
-    #print(answer)  
-    # 이미 type 이 str 인 상태에서 또 다시 json.dumps 를 뜨면 encoding 이 되어버린다. 그래서 하면 안됨.
-    #result_json = json.dumps(answer)
-
-    json_data = {}
-    json_data['result'] = result['answer']
-    #print(type(json_data))
-    #print(json_data)  
-
-    # 보내기 직전에 json 으로 변환시킨다(인코딩되기 때문에 글자들은 다 url 인코딩되듯이 변한다)
-    new_result = json.dumps(json_data)
-    #print(type(new_result))
-    #print(new_result)
-    
-    return new_result
+    return result
 
 
 # For running the FastAPI server we need to run the following command:

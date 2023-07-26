@@ -1,5 +1,9 @@
 __pycache__/
+documents/
+ask_embeddings_chroma.py
+ask_embeddings_pinecone.py
+ask_questions_chroma.py
 Cloudtype.txt
 gpt_tokenizer.py
-stream_lit.py
 json_test.py
+stream_lit.py
