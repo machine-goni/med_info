@@ -18,6 +18,5 @@ class RecvQuestions:
         else:
             result = self.ask_q.ask(question)
         
-        #print(type(result))
-        #print(result)
-        return result        
+                
+        return result
