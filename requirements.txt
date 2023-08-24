@@ -5,3 +5,4 @@ langchain
 pinecone-client
 tiktoken
 openai
+pycryptodome

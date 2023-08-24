@@ -2,6 +2,7 @@ __pycache__/
 chroma_db/
 csvs/
 documents/
+aes_encrypt.py
 ask_embeddings_chroma_2.py
 ask_embeddings_chroma.py
 ask_embeddings_pinecone.py
@@ -9,4 +10,6 @@ Cloudtype.txt
 CSVLoader.py
 gpt_tokenizer.py
 json_test.py
+k1.bin
+k2.bin
 stream_lit.py
