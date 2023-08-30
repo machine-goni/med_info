@@ -15,8 +15,8 @@ POST 메세지를 받을 클래스. FastAPI 에서는 이걸 model 이라고 부
 question, isFirst 는 메세지로 받을 param 이다.
 '''
 class User_key(BaseModel):
-    openai_key : str
-    pinecone_key : str
+    sk_1 : str
+    sk_2 : str
 
 
 class User_input(BaseModel):
@@ -36,7 +36,7 @@ FastAPI instance 로 REST API 를 정의 한다.
 
 @app.post("/init")
 def operate(input:User_key):
-    result = receiver.set_keys(input.openai_key, input.pinecone_key)
+    result = receiver.set_keys(input.sk_1, input.sk_2)
     
     json_data = {}
     json_data["result"] = result
