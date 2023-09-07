@@ -6,6 +6,7 @@ aes_encrypt.py
 ask_embeddings_chroma_2.py
 ask_embeddings_chroma.py
 ask_embeddings_pinecone.py
+ask_questions_rerank.py
 Cloudtype.txt
 CSVLoader.py
 gpt_tokenizer.py
