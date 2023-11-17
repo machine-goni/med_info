@@ -60,7 +60,12 @@ class AskQuestions:
         # We now initialize the ConversationalRetrievalChain
         # max_tokens parameter 는 completion 의 길이인 듯 하다. 짧게 설정했더니 답이 제한만큼만 짤려서 날아온다.
         # temperature 0 이 정확도는 물론이고 속도면에서 가장 빠르다고 한다.
-        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.0, openai_api_key=self.openai_key)
+        # 오픈AI 블로그(openai.com/blog) 에 따르면 23.12.11 부로 gpt-3.5-turbo-1106 이 gpt-3.5-turbo 로 자동업그레이드되고 
+        # gpt-3.5-turbo-0613 및 gpt-3.5-turbo-16k-0613 는 명시적으로 모델명을 적어야하며, 24.06.13 까지만 사용가능하다고 한다.
+        # 23.11.17 일 현재 gpt-3.5-turbo-1106 가 개똥같은 성능으로 물어보면 다 모른다고 하기때문에 0613 버전을 당분간 계속 사용하기 위해 명시해준다.
+        # 24.06.13 전에 1106 버전을 사용할지, 아니면 해당기능을 뺄지 결정해서 수정해야 한다.
+        # self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.0, openai_api_key=self.openai_key)
+        self.llm = ChatOpenAI(model="gpt-3.5-turbo-0613", temperature=0.0, openai_api_key=self.openai_key)
 
         # 리스트로 구현한 명시적 chat_history 를 사용하지 않고(명시적으로 쓸땐 이부분이 필요없다) memory 를 사용.
         # ConversationBufferWindowMemory 는 저장할 chat_history 의 갯수를 지정할 수 있다.
