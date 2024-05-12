@@ -3,10 +3,9 @@
 
 import os
 import json
-import pinecone
-from langchain.vectorstores import Pinecone
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.chat_models import ChatOpenAI
+from pinecone import Pinecone, ServerlessSpec
+from langchain_community.vectorstores import Pinecone as PineconeVectorStore
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
@@ -19,8 +18,9 @@ import base64
 
 
 
-PINECONE_API_ENV = os.environ.get('PINECONE_API_ENV', 'us-west1-gcp-free') # You may need to switch with your env
-INDEX_NAME = "med-info-with-msd-asan-230815" # put in the name of your pinecone index here
+PINECONE_API_ENV = os.environ.get('PINECONE_API_ENV','gcp-starter')
+os.environ['PINECONE_API_ENV'] = PINECONE_API_ENV
+INDEX_NAME = "med-info-with-msd-asan" # put in the name of your pinecone index here
 sk = 'rkskekfkakqktkdmgpdmgpdmgpgp2955'
 
 
@@ -29,7 +29,10 @@ class AskQuestions:
     
     def __init__(self, openai_key, pinecone_key):
         self.openai_key = decrypt(sk, openai_key)
-        self.pinecone_key = decrypt(sk, pinecone_key)                
+        #self.openai_key = openai_key
+        PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY', decrypt(sk, pinecone_key))
+        #PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY', pinecone_key)
+        os.environ['PINECONE_API_KEY'] = PINECONE_API_KEY                
         self.source_docs = []    
         self.gpts_choice_list = []        
         self.search_distance = 0.9 
@@ -41,10 +44,10 @@ class AskQuestions:
         self.embeddings = OpenAIEmbeddings(openai_api_key=self.openai_key)
 
         # initialize pinecone
-        pinecone.init(api_key=self.pinecone_key, environment=PINECONE_API_ENV)
+        pc = Pinecone(api_key=PINECONE_API_KEY)
 
         # 이미 문서를 임베딩해서 pinecone vector store 에 넣었다면 거기에서 끌어다 쓰면 된다
-        self.vectorstore = Pinecone.from_existing_index(INDEX_NAME, self.embeddings)
+        self.vectorstore = PineconeVectorStore.from_existing_index(INDEX_NAME, self.embeddings)
 
         '''
         # Contextual Compression Retriever 의 EmbeddingsFilter
@@ -65,7 +68,11 @@ class AskQuestions:
         # 23.11.17 일 현재 gpt-3.5-turbo-1106 가 개똥같은 성능으로 물어보면 다 모른다고 하기때문에 0613 버전을 당분간 계속 사용하기 위해 명시해준다.
         # 24.06.13 전에 1106 버전을 사용할지, 아니면 해당기능을 뺄지 결정해서 수정해야 한다.
         # self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.0, openai_api_key=self.openai_key)
-        self.llm = ChatOpenAI(model="gpt-3.5-turbo-0613", temperature=0.0, openai_api_key=self.openai_key)
+        self.model_type = 1
+        if self.model_type == 0:
+            self.llm = ChatOpenAI(model="gpt-4-turbo", temperature=0.1, api_key=self.openai_key)
+        else :
+            self.llm = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0.1, api_key=self.openai_key)
 
         # 리스트로 구현한 명시적 chat_history 를 사용하지 않고(명시적으로 쓸땐 이부분이 필요없다) memory 를 사용.
         # ConversationBufferWindowMemory 는 저장할 chat_history 의 갯수를 지정할 수 있다.
@@ -146,7 +153,7 @@ class AskQuestions:
             pinecone 은 되는 것 같다. chroma 는 테스트 안 해봐서 모른다.
             '''
             vectordbkwargs = {"search_distance": self.search_distance}                    
-            response = self.chain({"question": query, "vectordbkwargs": vectordbkwargs})
+            response = self.chain.invoke({"question": query, "vectordbkwargs": vectordbkwargs})
     
             #print("\nQ: " + query)
             #print("\nA: " + response["answer"])
@@ -223,6 +230,7 @@ class AskQuestions:
             json_data["related_search_url"] = new_choice_url_list
             json_data["related_search_id"] = gpts_choice_ids            
 
+            #print(response)
             return json.dumps(json_data)
             
 
@@ -403,12 +411,12 @@ class AskQuestions:
             no_filter = True
 
         #print(f"no_filter: {no_filter}")
-        docs_2 = retriever_2.get_relevant_documents(gpt_answer)
+        docs_2 = retriever_2.invoke(gpt_answer)
 
         if (len(docs_2) < 1) and no_filter == False:
             # 문서 전체에서 재검색            
             retriever_2 = self.vectorstore.as_retriever(search_type="similarity_score_threshold", search_kwargs={"k":nearest_k, "score_threshold": score_threshold})
-            docs_2 = retriever_2.get_relevant_documents(gpt_answer)
+            docs_2 = retriever_2.invoke(gpt_answer)
             #print("re-search")
 
         # 검색된 문서가 없다면 GPT 의 answer 만을 반환

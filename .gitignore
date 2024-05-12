@@ -11,6 +11,7 @@ Cloudtype.txt
 CSVLoader.py
 gpt_tokenizer.py
 json_test.py
+langchain_test.py
 k1.bin
 k2.bin
 stream_lit.py
